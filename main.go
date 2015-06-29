@@ -14,6 +14,7 @@ func main() {
 	http.Handle("/equip/activate", handler(handle_equip_activate))
 	http.Handle("/equip/drop", handler(handle_equip_drop))
 	http.Handle("/equip/edit", handler(handle_equip_edit))
+	http.Handle("/equip/attitude", handler(handle_equip_attitude))
 	http.Handle("/equips/show", handler(handle_equips_show))
 	http.Handle("/equips/batch", handler(handle_equips_batch))
 	http.Handle("/alarms/show", handler(handle_alarms_show))
@@ -73,6 +74,10 @@ func handle_equip_edit(w http.ResponseWriter, r *http.Request) {
 	v := Equip{EquipId: rand.Uint32(), Gprs: random_no(16)}
 	check_error(json.NewEncoder(w).Encode(&v))
 }
+func handle_equip_attitude(w http.ResponseWriter, r *http.Request) {
+	v := Equip{EquipId: rand.Uint32(), Gprs: random_no(16)}
+	check_error(json.NewEncoder(w).Encode(&v))
+}
 func random_equips(n int) []Equip {
 	v := make([]Equip, n)
 	for i := 0; i < n; i++ {
@@ -115,6 +120,11 @@ type Antenna struct {
 	UnitId  uint32
 	Lng     int // 129.23 *100000
 	Lat     int // 32.11 * 100000
+}
+
+type AntennaAttitude struct {
+	Antenna
+	current Attitude `json:"atti"`
 }
 
 func random_alarm_type() string {
