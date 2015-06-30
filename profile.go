@@ -8,8 +8,6 @@ type Profile struct {
 	Z        int `json:"z"`        //degreee/1000 > -5000 and < 5000
 }
 
-var _profile Profile = Profile{24, 1 * cm, 2 * cmd, 5 * cmd, 5 * cmd}
-
 func validate_profile(p Profile) Profile {
 	if p.Duration <= 0 || p.Duration > 30*24 {
 		p.Duration = _profile.Duration
