@@ -27,7 +27,7 @@ func main() {
 	http.Handle("/attitudes/show", handler(handle_attitudes_show))
 	http.Handle("/profile/edit", handler(handle_profile_edit))
 	http.Handle("/profile/show", handler(handle_profile_show))
-
+	http.Handle("/geo", handler(handle_baidu_geo)) // ?lat=xxx&lng=xxx
 	http.ListenAndServe(":9202", nil)
 }
 
@@ -156,6 +156,15 @@ func handle_notfound(w http.ResponseWriter, r *http.Request) {
 	panic_error(json.NewEncoder(w).Encode("hello fixed"))
 }
 
+func handle_baidu_geo(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	lat, lng := r.FormValue("lat"), r.FormValue("lng")
+	is_baidu, _ := strconv.Atoi(r.FormValue("baidu"))
+	uri := baidu_location(lat, lng, is_baidu)
+	w.Header().Del("Content-Type")
+	w.Header().Set("Location", uri)
+	w.WriteHeader(http.StatusFound)
+}
 func (imp handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	defer func() {
