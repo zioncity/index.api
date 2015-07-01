@@ -27,6 +27,8 @@ const (
 	unit_count = 18
 )
 
+var equip_id_seed uint32 = 0x80000000
+
 func random_date() int64 {
 	return time.Now().Add(-time.Hour * time.Duration(rand.Intn(24))).Unix()
 }
@@ -37,8 +39,6 @@ var _id2equips map[uint32]Equip
 var _id2antennas map[uint32][]Antenna
 var _gprs2equipid map[string]uint32
 var _id2gprs map[uint32]string
-
-var equip_id_seed uint32 = 10000000
 
 func get_equip_byid(equipid uint32) Equip {
 	if v, ok := _id2equips[equipid]; ok {

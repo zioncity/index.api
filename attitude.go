@@ -9,11 +9,11 @@ type Attitude struct {
 	EquipId uint32 `json:"equipid"`
 	Gprs    string `json:"gprs"`
 	UnitId  uint32 `json:"unitid"`
-	H       int    `json:"h"`    //cm centimetre
-	X       int    `json:"x"`    //degrees * 100000
-	Y       int    `json:"y"`    //degrees * 100000
-	Z       int    `json:"z"`    //degrees * 100000
-	Date    int64  `json:"date"` // unixtime
+	H       int    `json:"h"`      //cm centimetre
+	X       int    `json:"x"`      //degrees * 100000
+	Y       int    `json:"y"`      //degrees * 100000
+	Z       int    `json:"z"`      //degrees * 100000
+	Update  int64  `json:"update"` // unixtime
 }
 
 type EquipAntennaAttitude struct {

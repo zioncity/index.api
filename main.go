@@ -27,7 +27,7 @@ func main() {
 	http.Handle("/attitudes/show", handler(handle_attitudes_show))
 	http.Handle("/profile/edit", handler(handle_profile_edit))
 	http.Handle("/profile/show", handler(handle_profile_show))
-	http.Handle("/geo", handler(handle_baidu_geo)) // ?lat=xxx&lng=xxx
+	http.Handle("/geo", handler(handle_baidu_geo)) // ?lat=xxx&lng=xxx&baidu=0
 	http.ListenAndServe(":9202", nil)
 }
 
