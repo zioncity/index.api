@@ -33,14 +33,31 @@ func main() {
 
 //post.body = equip
 func handle_equip_add(w http.ResponseWriter, r *http.Request) {
-	v := Equip{EquipId: rand.Uint32(), Gprs: random_no(16)}
-	panic_error(json.NewEncoder(w).Encode(&v))
+	r.ParseForm()
+	var val Equip
+	dec := json.NewDecoder(r.Body)
+	panic_error(dec.Decode(&val))
+	val, err := equip_upsert(val)
+	panic_error(err)
+	panic_error(json.NewEncoder(w).Encode(&val))
 }
 func handle_equip_activate(w http.ResponseWriter, r *http.Request) {
-	v := Equip{EquipId: rand.Uint32(), Gprs: random_no(16)}
-	panic_error(json.NewEncoder(w).Encode(&v))
+	r.ParseForm()
+	var val Equip
+	dec := json.NewDecoder(r.Body)
+	panic_error(dec.Decode(&val))
+	val, err := equip_activate(val)
+	panic_error(err)
+	panic_error(json.NewEncoder(w).Encode(&val))
 }
 func handle_equip_drop(w http.ResponseWriter, r *http.Request) {
+	equipid, _ := strconv.Atoi(r.FormValue("equipid"))
+	gprs := r.FormValue("gprs")
+	if equipid != 0 {
+		equip_drop_id(uint32(equipid))
+	} else if gprs != "" {
+		equip_drop_id(equip_get_gprs(gprs).EquipId)
+	}
 	v := Equip{EquipId: rand.Uint32(), Gprs: random_no(16)}
 	panic_error(json.NewEncoder(w).Encode(&v))
 }
@@ -48,47 +65,73 @@ func handle_equip_edit(w http.ResponseWriter, r *http.Request) {
 	var v Equip
 	dec := json.NewDecoder(r.Body)
 	panic_error(dec.Decode(&v))
-	if v.EquipId == 0 {
-		v.EquipId = rand.Uint32()
-	}
-	if v.Gprs == "" {
-		v.Gprs = random_no(16)
-	}
-	if v.Name == "" {
-		v.Name = v.Gprs
-	}
-	//	v := Equip{EquipId: rand.Uint32(), Gprs: random_no(16)}
+	v, err := equip_upsert(v)
+	panic_error(err)
 	panic_error(json.NewEncoder(w).Encode(&v))
 }
 func handle_equip_show(w http.ResponseWriter, r *http.Request) {
-	equipid, _ := strconv.Atoi(r.FormValue("equipid"))
+	equipid := atoui32(r.FormValue("equipid"))
 	gprs := r.FormValue("gprs")
-	v := Equip{EquipId: rand.Uint32(), Gprs: random_no(16)}
-	if equipid != 0 {
-		v.EquipId = uint32(equipid)
-	}
+	v := equip_get_id(equipid)
 	if gprs != "" {
-		v.Gprs = gprs
+		v = equip_get_gprs(gprs)
 	}
+
 	panic_error(json.NewEncoder(w).Encode(&v))
 }
 
 func handle_equip_attitude(w http.ResponseWriter, r *http.Request) {
-	v := random_attitudes(18)
+	r.ParseForm()
+	equipid := atoui32(r.FormValue("equipid"))
+	v := attitudes_get_equip(equipid)
+	//	v := random_attitudes(18)
 	panic_error(json.NewEncoder(w).Encode(&v))
 }
 
 func handle_equips_show(w http.ResponseWriter, r *http.Request) {
-	v := random_equips(32)
-	panic_error(json.NewEncoder(w).Encode(&v))
-}
-func handle_equips_batch(w http.ResponseWriter, r *http.Request) {
-	v := random_equips(24)
+	r.ParseForm()
+	prov, city := r.FormValue("province"), r.FormValue("city")
+	v := equips_get_geo(prov, city)
+	//v := random_equips(32)
 	panic_error(json.NewEncoder(w).Encode(&v))
 }
 
+type errorx []error
+
+func (self errorx) Error() string {
+	var v string
+	for _, e := range self {
+		v = v + e.Error()
+	}
+	return v
+}
+func handle_equips_batch(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	var v []Equip
+	dec := json.NewDecoder(r.Body)
+	panic_error(dec.Decode(&v))
+	errs := errorx{}
+	for _, e := range v {
+		if _, err := equip_upsert(e); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	panic_error(json.NewEncoder(w).Encode(errs.Error()))
+}
+
 func handle_alarms_show(w http.ResponseWriter, r *http.Request) {
-	v := random_alarms(32)
+	r.ParseForm()
+	eqid, gprs := atoui32(r.FormValue("equipid")), r.FormValue("gprs")
+	from, count := atoui32(r.FormValue("from")), atoui32(r.FormValue("count"))
+	if count == 0 {
+		count = 10
+	}
+	equip := equip_get_id(eqid)
+	if gprs != "" {
+		equip = equip_get_gprs(gprs)
+	}
+	v := alarms_get_equip(equip.EquipId, int(from), int(count))
+	//	v := random_alarms(32)
 	panic_error(json.NewEncoder(w).Encode(&v))
 }
 func handle_alarm_add(w http.ResponseWriter, r *http.Request) {
@@ -96,33 +139,25 @@ func handle_alarm_add(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	panic_error(dec.Decode(&alarm))
 	alarm.Date = time.Now().Unix()
-	var v EquipAntennaAlarm
-	v.Equip = random_equip()
-	v.Antenna = random_antenna()
-	v.Alarm = alarm
+	v := alarm_update(alarm)
 	panic_error(json.NewEncoder(w).Encode(&v))
 }
 
 func handle_antenna_enable(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	disable, _ := strconv.Atoi(r.FormValue("disable"))
-	equipid, _ := strconv.Atoi(r.FormValue("equipid"))
-	unitid, _ := strconv.Atoi(r.FormValue("unitid"))
-	gprs := r.FormValue("gprs")
-	v := EquipAntenna{random_equip(), random_antenna()}
-	v.Antenna.EquipId = uint32(equipid)
-	v.Equip.EquipId = uint32(equipid)
-	v.Antenna.UnitId = uint32(unitid)
-	v.Antenna.Disable = disable
-	if gprs != "" {
-		v.Equip.Gprs = gprs
-		v.Antenna.Gprs = gprs
-	}
+	disable, equipid, unitid := atoui32(r.FormValue("disable")), atoui32(r.FormValue("equipid")), atoui32(r.FormValue("unitid"))
+	//	gprs := r.FormValue("gprs")
+	//	equip := equip_get_id(equipid)
+	//	antenna := antenna_get_id(equipid, unitid)
+	v := antenna_disable(equipid, unitid, disable)
+	//	antenna.Disable = disable
 	panic_error(json.NewEncoder(w).Encode(&v))
 }
 
 func handle_antennas_show(w http.ResponseWriter, r *http.Request) {
-	v := random_antennas(32)
+	r.ParseForm()
+	equipid := atoui32(r.FormValue("equipid"))
+	v := antennas_get_equip(equipid)
 	panic_error(json.NewEncoder(w).Encode(&v))
 }
 
@@ -131,12 +166,15 @@ func handle_attitude_append(w http.ResponseWriter, r *http.Request) {
 	atts := []Attitude{} //EquipId/Gprs HXYZ
 	dec := json.NewDecoder(r.Body)
 	panic_error(dec.Decode(&atts))
-	v := validate_attitudes(atts)
+	v := attitudes_update(atts)
 	panic_error(json.NewEncoder(w).Encode(&v))
 }
 
 func handle_attitudes_show(w http.ResponseWriter, r *http.Request) {
-	v := random_attitudes(32)
+	r.ParseForm()
+	equipid, unitid := atoui32(r.FormValue("equpid")), atoui32(r.FormValue("unitid"))
+	v := attitudes_get(equipid, unitid)
+	//	v := random_attitudes(32)
 	panic_error(json.NewEncoder(w).Encode(&v))
 }
 func handle_profile_edit(w http.ResponseWriter, r *http.Request) {
@@ -144,7 +182,7 @@ func handle_profile_edit(w http.ResponseWriter, r *http.Request) {
 	dec := json.NewDecoder(r.Body)
 	var p Profile
 	panic_error(dec.Decode(&p))
-	_profile = validate_profile(p)
+	_profile = profile_update(p)
 	panic_error(json.NewEncoder(w).Encode(&_profile))
 }
 

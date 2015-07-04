@@ -22,17 +22,17 @@ type EquipAntennaAttitude struct {
 	Attitude Attitude `json:"attitude"`
 }
 
-func validate_attitudes(atts []Attitude) []EquipAntennaAttitude {
+func attitudes_update(atts []Attitude) []EquipAntennaAttitude {
 	v := make([]EquipAntennaAttitude, len(atts))
 	for i := 0; i < len(atts); i++ {
-		atts[i].Date = time.Now().Unix()
+		atts[i].Update = time.Now().Unix()
 		if atts[i].Gprs == "" {
 			atts[i].Gprs = random_no(16)
 		}
 		if atts[i].EquipId == 0 {
 			atts[i].EquipId = rand.Uint32()
 		}
-		v[i].Antenna = random_antenna()
+		v[i].Antenna = antenna_init()
 		v[i].Equip = random_equip()
 		v[i].Attitude = atts[i]
 	}
@@ -44,9 +44,17 @@ func random_attitude() Attitude {
 func random_attitudes(n int) []EquipAntennaAttitude {
 	v := make([]EquipAntennaAttitude, n)
 	for i := 0; i < n; i++ {
-		v[i].Antenna = random_antenna()
+		v[i].Antenna = antenna_init()
 		v[i].Equip = random_equip()
 		v[i].Attitude = random_attitude()
 	}
 	return v
+}
+
+func attitudes_get(equipid, unitid uint32) []EquipAntennaAttitude {
+	return nil
+}
+
+func attitudes_get_equip(equipid uint32) []EquipAntennaAttitude {
+	return nil
 }
