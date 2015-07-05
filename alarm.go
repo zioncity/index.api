@@ -37,10 +37,10 @@ func alarm_init() Alarm {
 func alarms_get_equip(equipid uint32, from, count int) []EquipAntennaAlarm {
 	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
 	panic_error(err)
-	var q = elastic.NewTermQuery("equipid", equipid)
-	//  var q = elastic.NewTermFilter("equipid", equipid)
+	//	var q = elastic.NewTermQuery("equipid", equipid)
+	var q = elastic.NewTermFilter("equipid", equipid).Source()
 
-	result, err := client.Search().Index(es_index).Type("alarm").Query(q).Sort("date", false).From(from).Size(count).Do()
+	result, err := client.Search().Index(es_index).Type("alarm").Source(q).Sort("date", false).From(from).Size(count).Do()
 	panic_error(err)
 	var v []EquipAntennaAlarm
 	var ta = reflect.TypeOf(Alarm{})

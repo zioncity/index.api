@@ -3,6 +3,8 @@ package main
 import (
 	"math/rand"
 	"time"
+
+	"github.com/olivere/elastic"
 )
 
 type Attitude struct {
@@ -22,7 +24,17 @@ type EquipAntennaAttitude struct {
 	Attitude Attitude `json:"attitude"`
 }
 
+func attitudes_fresh_antenna(atts []Attitude) {
+	for _, a := range atts {
+		a.Update = time.Now().Unix()
+		antenna_set_attitude(a)
+	}
+}
+
+//天线姿态上报，分批数据
 func attitudes_update(atts []Attitude) []EquipAntennaAttitude {
+	attitudes_fresh_antenna(atts)
+	attitudes_insert(atts)
 	v := make([]EquipAntennaAttitude, len(atts))
 	for i := 0; i < len(atts); i++ {
 		atts[i].Update = time.Now().Unix()
@@ -38,23 +50,30 @@ func attitudes_update(atts []Attitude) []EquipAntennaAttitude {
 	}
 	return v
 }
-func random_attitude() Attitude {
-	return Attitude{rand.Uint32(), random_no(16), rand.Uint32() % 18, rand.Intn(cm), rand.Intn(90 * cmd), rand.Intn(30 * cmd), rand.Intn(45 * cmd), time.Now().Unix()}
-}
-func random_attitudes(n int) []EquipAntennaAttitude {
-	v := make([]EquipAntennaAttitude, n)
-	for i := 0; i < n; i++ {
-		v[i].Antenna = antenna_init()
-		v[i].Equip = random_equip()
-		v[i].Attitude = random_attitude()
+func attitudes_insert(atts []Attitude) {
+	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
+	panic_error(err)
+	for _, attitude := range atts {
+		_, err = client.Index().Index(es_index).Type("attitude").BodyJson(&attitude).Do()
+		panic_error(err)
 	}
-	return v
 }
 
-func attitudes_get(equipid, unitid uint32) []EquipAntennaAttitude {
+func attitudes_get(equipid, unitid uint32, from, count int) []EquipAntennaAttitude {
+	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
+	panic_error(err)
+	f := elastic.NewAndFilter()
+	f.Add(elastic.NewTermFilter("equipid", equipid))
+	f.Add(elastic.NewTermFilter("unitid", unitid))
+	//	var q = elastic.NewTermFilter("equipid", equipid).Source()
+
+	result, err := client.Search().Index(es_index).Type("attitude").Source(f.Source()).Sort("update", false).From(from).Size(count).Do()
+
 	return nil
 }
 
-func attitudes_get_equip(equipid uint32) []EquipAntennaAttitude {
+func attitudes_get_equip(equipid uint32) (v []EquipAntennaAttitude) {
+	antennas := antennas_get_equip(equipid)
+
 	return nil
 }

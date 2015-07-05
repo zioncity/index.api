@@ -39,7 +39,3 @@ var _id2equips map[uint32]*Equip
 var _id2antennas map[uint32][]*Antenna
 var _gprs2equipid map[string]uint32
 var _id2gprs map[uint32]string
-
-func post_index_antennas([]*Antenna) {
-
-}

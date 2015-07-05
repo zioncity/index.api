@@ -1,9 +1,6 @@
 package main
 
-import (
-	"math/rand"
-	"strconv"
-)
+import "strconv"
 
 type Equip struct {
 	EquipId   uint32 `json:"equipid"`
@@ -11,6 +8,7 @@ type Equip struct {
 	Name      string `json:"name,omitempty"`
 	Province  string `json:"province"`
 	City      string `json:"city"`
+	Duration  uint32 `json:"duration"`  // Hour
 	Lat       uint32 `json:"lat"`       // 129.11 * cmd //cmd=1000
 	Lng       uint32 `json:"lng"`       // 36.87 *cmd
 	Activated uint16 `json:"activated"` // 0 : unactivated, 1: activated
@@ -19,13 +17,13 @@ type Equip struct {
 }
 
 func random_equip() Equip {
-	return Equip{EquipId: rand.Uint32(), Gprs: random_no(16)}
+	return Equip{Duration: 24}
 }
 
 func random_equips(n int) []Equip {
 	v := make([]Equip, n)
 	for i := 0; i < n; i++ {
-		v[i] = Equip{EquipId: rand.Uint32(), Gprs: random_no(16)}
+		v[i] = random_equip()
 	}
 	return v
 }
