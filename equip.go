@@ -26,27 +26,24 @@ func equip_init() Equip {
 	return Equip{Duration: 24}
 }
 
-func equip_save(e Equip) error {
-	return nil
-}
-
 func equip_get_id(equipid uint32) Equip {
 	if v, ok := _id2equips[equipid]; ok {
 		return *v
 	}
 	return equip_init()
-	/*
-		gprs := strconv.Itoa(int(equipid))
-		_gprs2equipid[gprs] = equipid
-		_id2equips[equipid] = random_equip()
-	*/
+
 }
 
-func equip_drop_id(equipid uint32) Equip {
-	if _, ok := _id2antennas[equipid]; ok {
+func equip_drop_id(equipid uint32) {
+	delete(_id2equips, equipid)
 
-	}
-	return equip_init()
+	equip_es_drop(equipid)
+}
+func equip_es_drop(equipid uint32) {
+	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
+	panic_error(err)
+	_, err = client.Delete().Index(es_index).Id(strconv.Itoa(int(equipid))).Do()
+	panic_error(err)
 }
 func equip_add(e Equip) Equip {
 	orig := equip_get_id(e.EquipId)
@@ -75,7 +72,9 @@ func equip_activate(e Equip) Equip {
 		e = orig
 	}
 	e.Activated = 1
+	_id2equips[e.EquipId] = &e
 	equip_es_upsert(e)
+	antenna_upsert(e.EquipId, e.Gprs)
 	return e
 }
 

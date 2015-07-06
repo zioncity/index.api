@@ -54,9 +54,8 @@ func handle_equip_activate(w http.ResponseWriter, r *http.Request) {
 func handle_equip_drop(w http.ResponseWriter, r *http.Request) {
 	equipid, _ := strconv.Atoi(r.FormValue("equipid"))
 
-	v := equip_drop_id(uint32(equipid))
+	equip_drop_id(uint32(equipid))
 
-	panic_error(json.NewEncoder(w).Encode(&v))
 }
 func handle_equip_edit(w http.ResponseWriter, r *http.Request) {
 	var v Equip
