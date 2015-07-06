@@ -2,6 +2,7 @@ package main
 
 import (
 	"reflect"
+	"strconv"
 
 	"github.com/olivere/elastic"
 )
@@ -83,10 +84,16 @@ func antenna_initialize_equip(ats []*Antenna, gprs string, equipid uint32) {
 }
 
 func antenna_upsert(equipid uint32, gprs string) {
+	if _, ok := _id2antennas[equipid]; ok {
+		return
+	}
 	ats := make([]*Antenna, unit_count)
 	antenna_initialize_equip(ats, gprs, equipid)
 
 	_id2antennas[equipid] = ats
+	for _, a := range ats {
+		antenna_es_upsert(*a)
+	}
 }
 
 func antenna_disable(equipid, unitid, disable uint32) int {
@@ -96,12 +103,19 @@ func antenna_disable(equipid, unitid, disable uint32) int {
 	}
 	if v, ok := _id2antennas[equipid]; ok {
 		v[unitid].Disable = disable
+		antenna_es_upsert(*v[unitid])
 		ret = 0
 	}
+
 	return ret
 }
-
-func antennas_all() (ret []Antenna) {
+func antenna_es_upsert(a Antenna) {
+	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
+	panic_error(err)
+	_, err = client.Index().Index(es_index).Type("antenna").Id(strconv.Itoa(int(a.EquipId*100 + a.UnitId))).BodyJson(&a).Do()
+	panic_error(err)
+}
+func antennas_es_load() (ret []Antenna) {
 	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
 	panic_error(err)
 	for from, count := 0, 1000; count >= 1000; {
@@ -115,13 +129,14 @@ func antennas_all() (ret []Antenna) {
 			}
 		}
 		from, count = from+len(v), len(v)
+		ret = append(ret, v...)
 	}
 	return ret
 }
 
 //var _id2antennas map[uint32][]*Antenna
-func antennas_load() {
-	ats := antennas_all()
+func antennas_all() {
+	ats := antennas_es_load()
 	for _, at := range ats {
 		if x, ok := _id2antennas[at.EquipId]; ok {
 			x[at.UnitId] = &at

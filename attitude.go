@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/rand"
+	"reflect"
 	"time"
 
 	"github.com/olivere/elastic"
@@ -31,10 +32,7 @@ func attitudes_fresh_antenna(atts []Attitude) {
 	}
 }
 
-//天线姿态上报，分批数据
-func attitudes_update(atts []Attitude) []EquipAntennaAttitude {
-	attitudes_fresh_antenna(atts)
-	attitudes_insert(atts)
+func attitudes_fill(atts []Attitude) []EquipAntennaAttitude {
 	v := make([]EquipAntennaAttitude, len(atts))
 	for i := 0; i < len(atts); i++ {
 		atts[i].Update = time.Now().Unix()
@@ -45,10 +43,17 @@ func attitudes_update(atts []Attitude) []EquipAntennaAttitude {
 			atts[i].EquipId = rand.Uint32()
 		}
 		v[i].Antenna = antenna_init()
-		v[i].Equip = random_equip()
+		v[i].Equip = equip_init()
 		v[i].Attitude = atts[i]
 	}
 	return v
+}
+
+//天线姿态上报，分批数据
+func attitudes_update(atts []Attitude) []EquipAntennaAttitude {
+	attitudes_fresh_antenna(atts)
+	attitudes_insert(atts)
+	return attitudes_fill(atts)
 }
 func attitudes_insert(atts []Attitude) {
 	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
@@ -68,12 +73,22 @@ func attitudes_get(equipid, unitid uint32, from, count int) []EquipAntennaAttitu
 	//	var q = elastic.NewTermFilter("equipid", equipid).Source()
 
 	result, err := client.Search().Index(es_index).Type("attitude").Source(f.Source()).Sort("update", false).From(from).Size(count).Do()
-
-	return nil
+	panic_error(err)
+	var v []Attitude
+	var ta = reflect.TypeOf(Attitude{})
+	for _, item := range result.Each(ta) {
+		if a, ok := item.(Attitude); ok {
+			v = append(v, a)
+		}
+	}
+	return attitudes_fill(v)
 }
 
-func attitudes_get_equip(equipid uint32) (v []EquipAntennaAttitude) {
-	antennas := antennas_get_equip(equipid)
-
-	return nil
+func attitudes_get_equip(equipid uint32, from, count int) (v []EquipAntennaAttitude) {
+	if antennas, ok := _id2antennas[equipid]; ok {
+		for _, a := range antennas {
+			v = append(v, attitudes_get(equipid, a.UnitId, from, count)...)
+		}
+	}
+	return
 }

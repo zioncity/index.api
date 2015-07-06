@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"math/rand"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,6 +10,8 @@ import (
 type handler func(w http.ResponseWriter, r *http.Request)
 
 func main() {
+	equip_all()
+	antennas_all()
 	http.Handle("/equip/add", handler(handle_equip_add))
 	http.Handle("/equip/activate", handler(handle_equip_activate))
 	http.Handle("/equip/drop", handler(handle_equip_drop))
@@ -37,8 +38,8 @@ func handle_equip_add(w http.ResponseWriter, r *http.Request) {
 	var val Equip
 	dec := json.NewDecoder(r.Body)
 	panic_error(dec.Decode(&val))
-	val, err := equip_upsert(val)
-	panic_error(err)
+	val = equip_add(val)
+
 	panic_error(json.NewEncoder(w).Encode(&val))
 }
 func handle_equip_activate(w http.ResponseWriter, r *http.Request) {
@@ -46,36 +47,29 @@ func handle_equip_activate(w http.ResponseWriter, r *http.Request) {
 	var val Equip
 	dec := json.NewDecoder(r.Body)
 	panic_error(dec.Decode(&val))
-	val, err := equip_activate(val)
-	panic_error(err)
+	val = equip_activate(val)
+
 	panic_error(json.NewEncoder(w).Encode(&val))
 }
 func handle_equip_drop(w http.ResponseWriter, r *http.Request) {
 	equipid, _ := strconv.Atoi(r.FormValue("equipid"))
-	gprs := r.FormValue("gprs")
-	if equipid != 0 {
-		equip_drop_id(uint32(equipid))
-	} else if gprs != "" {
-		equip_drop_id(equip_get_gprs(gprs).EquipId)
-	}
-	v := Equip{EquipId: rand.Uint32(), Gprs: random_no(16)}
+
+	v := equip_drop_id(uint32(equipid))
+
 	panic_error(json.NewEncoder(w).Encode(&v))
 }
 func handle_equip_edit(w http.ResponseWriter, r *http.Request) {
 	var v Equip
 	dec := json.NewDecoder(r.Body)
 	panic_error(dec.Decode(&v))
-	v, err := equip_upsert(v)
-	panic_error(err)
+	v = equip_add(v)
+
 	panic_error(json.NewEncoder(w).Encode(&v))
 }
 func handle_equip_show(w http.ResponseWriter, r *http.Request) {
 	equipid := atoui32(r.FormValue("equipid"))
-	gprs := r.FormValue("gprs")
+
 	v := equip_get_id(equipid)
-	if gprs != "" {
-		v = equip_get_gprs(gprs)
-	}
 
 	panic_error(json.NewEncoder(w).Encode(&v))
 }
@@ -83,7 +77,11 @@ func handle_equip_show(w http.ResponseWriter, r *http.Request) {
 func handle_equip_attitude(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	equipid := atoui32(r.FormValue("equipid"))
-	v := attitudes_get_equip(equipid)
+	from, count := atoui32(r.FormValue("from")), atoui32(r.FormValue("count"))
+	if count == 0 {
+		count = 10
+	}
+	v := attitudes_get_equip(equipid, int(from), int(count))
 	//	v := random_attitudes(18)
 	panic_error(json.NewEncoder(w).Encode(&v))
 }
@@ -110,26 +108,22 @@ func handle_equips_batch(w http.ResponseWriter, r *http.Request) {
 	var v []Equip
 	dec := json.NewDecoder(r.Body)
 	panic_error(dec.Decode(&v))
-	errs := errorx{}
+
 	for _, e := range v {
-		if _, err := equip_upsert(e); err != nil {
-			errs = append(errs, err)
-		}
+		equip_add(e)
 	}
-	panic_error(json.NewEncoder(w).Encode(errs.Error()))
+
 }
 
 func handle_alarms_show(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	eqid, gprs := atoui32(r.FormValue("equipid")), r.FormValue("gprs")
+	eqid := atoui32(r.FormValue("equipid"))
 	from, count := atoui32(r.FormValue("from")), atoui32(r.FormValue("count"))
 	if count == 0 {
 		count = 10
 	}
 	equip := equip_get_id(eqid)
-	if gprs != "" {
-		equip = equip_get_gprs(gprs)
-	}
+
 	v := alarms_get_equip(equip.EquipId, int(from), int(count))
 	//	v := random_alarms(32)
 	panic_error(json.NewEncoder(w).Encode(&v))
@@ -173,7 +167,11 @@ func handle_attitude_append(w http.ResponseWriter, r *http.Request) {
 func handle_attitudes_show(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	equipid, unitid := atoui32(r.FormValue("equpid")), atoui32(r.FormValue("unitid"))
-	v := attitudes_get(equipid, unitid)
+	from, count := atoui32(r.FormValue("from")), atoui32(r.FormValue("count"))
+	if count == 0 {
+		count = 10
+	}
+	v := attitudes_get(equipid, unitid, int(from), int(count))
 	//	v := random_attitudes(32)
 	panic_error(json.NewEncoder(w).Encode(&v))
 }

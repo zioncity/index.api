@@ -6,6 +6,12 @@ import (
 	"github.com/olivere/elastic"
 )
 
+/*
+上报一条告警
+获取某根天线的告警
+获取某个下位机的告警
+*/
+
 type Alarm struct {
 	EquipId uint32 `json:"equipid"`
 	UnitId  uint32 `json:"unitid"`
@@ -79,5 +85,6 @@ func alarm_fill(a Alarm) EquipAntennaAlarm {
 
 func alarm_update(a Alarm) EquipAntennaAlarm {
 	antenna_set_alarm(a.H+a.X+a.Y+a.Z, a.EquipId, a.UnitId)
+	es_upsert("alarm", &a)
 	return alarm_fill(a)
 }
