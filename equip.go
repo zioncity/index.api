@@ -19,6 +19,7 @@ type Equip struct {
 	Activated uint16 `json:"activated"` // 0 : unactivated, 1: activated
 	Online    uint16 `json:"online"`    // 0:offline, 1:online
 	Update    int64  `json:"update"`    // unixtime the last update time
+	Alarm     int    `json"alarms"`
 	//	Antennas  []Antenna `json:"antenna,omitmepty"`
 }
 
@@ -46,6 +47,9 @@ func equip_es_drop(equipid uint32) {
 	panic_error(err)
 }
 func equip_add(e Equip) Equip {
+	if e.EquipId == 0 && e.Gprs != "" {
+		e.EquipId = atoui32(e.Gprs)
+	}
 	orig := equip_get_id(e.EquipId)
 	if e.EquipId != 0 && orig.EquipId == e.EquipId {
 		orig.Name = select_string(orig.Name, e.Name)
@@ -66,9 +70,12 @@ func select_string(p1, alt string) string {
 	return p1
 }
 func equip_activate(e Equip) Equip {
+	if e.EquipId == 0 && e.Gprs != "" {
+		e.EquipId = atoui32(e.Gprs)
+	}
 	orig := equip_get_id(e.EquipId)
 	if orig.EquipId != 0 && orig.EquipId == e.EquipId {
-		//	orig.Gprs = e.Gprs
+		orig.Gprs = e.Gprs
 		e = orig
 	}
 	e.Activated = 1
@@ -117,5 +124,11 @@ func equip_all() {
 	var ret = equip_es_load()
 	for _, equip := range ret {
 		_id2equips[equip.EquipId] = &equip
+	}
+}
+func equip_set_alarm(equipid uint32, old, current int) {
+	if equip, ok := _id2equips[equipid]; ok {
+		equip.Alarm = equip.Alarm - old + current
+		equip_es_upsert(*equip)
 	}
 }

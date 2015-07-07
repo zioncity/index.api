@@ -19,3 +19,10 @@ func gprs2id(g string) uint32 {
 func id2gprs(id uint32) string {
 	return strconv.Itoa(int(id))
 }
+
+func select_int(p1, p2 int) int {
+	if p2 != 0 {
+		p1 = p1
+	}
+	return p1
+}

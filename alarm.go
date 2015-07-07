@@ -1,7 +1,9 @@
 package main
 
 import (
+	"log"
 	"reflect"
+	"time"
 
 	"github.com/olivere/elastic"
 )
@@ -41,9 +43,10 @@ func alarm_init() Alarm {
 
 //获取下位机的告警
 func alarms_get_equip(equipid uint32, from, count int) []EquipAntennaAlarm {
+	log.Println("alarms-get-equip", equipid, from, count)
 	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
 	panic_error(err)
-	//	var q = elastic.NewTermQuery("equipid", equipid)
+
 	var q = elastic.NewTermFilter("equipid", equipid).Source()
 
 	result, err := client.Search().Index(es_index).Type("alarm").Source(q).Sort("date", false).From(from).Size(count).Do()
@@ -60,6 +63,7 @@ func alarms_get_equip(equipid uint32, from, count int) []EquipAntennaAlarm {
 
 //获取某根天线的告警
 func alarms_get_antenna(equipid, unitid uint32, from, count int) []EquipAntennaAlarm {
+	log.Println("alarms-get-antenna", equipid, unitid, from, count)
 	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
 	panic_error(err)
 	f := elastic.NewAndFilter()
@@ -84,7 +88,10 @@ func alarm_fill(a Alarm) EquipAntennaAlarm {
 }
 
 func alarm_update(a Alarm) EquipAntennaAlarm {
-	antenna_set_alarm(a.H+a.X+a.Y+a.Z, a.EquipId, a.UnitId)
+	a.Date = time.Now().Unix()
+	log.Println("alarm-update", a.EquipId, a.UnitId, a.H, a.X, a.Y, a.Z)
+	old := antenna_set_alarm(a.H+a.X+a.Y+a.Z, a.EquipId, a.UnitId)
 	es_upsert("alarm", &a)
+	equip_set_alarm(a.EquipId, old, a.H+a.X+a.Y+a.Z)
 	return alarm_fill(a)
 }

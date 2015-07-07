@@ -1,8 +1,10 @@
 package main
 
 import (
+	"log"
 	"reflect"
 	"strconv"
+	"time"
 
 	"github.com/olivere/elastic"
 )
@@ -17,20 +19,20 @@ type Antenna struct {
 	UnitId      uint32 `json:"unitid"`  //[0,18)
 	Lng         int    `json:"lng"`     // 129.23 *100000
 	Lat         int    `json:"lat"`     // 32.11 * 100000
-	Disable     uint32 `json:"disable"` //1:disable, 0:not disable
+	Enable      int    `json:"enable"`  //0:disable, 1:enable
 	Network     int    `json:"network"` //0:reserved 1:移动， 2:联通, 3:电信
-	BaseId      uint32 `json:"baseid"`
-	Basename    string `json:"basename"`
-	CellId      uint16 `json:"cellid"`
+	BaseId      int    `json:"baseid"`
+	BaseName    string `json:"basename"`
+	CellId      int    `json:"cellid"`
 	BaseManu    string `json:"basemanu"`
 	AntennaManu string `json:"antennamanu"`
 	AntennaTyp  string `json:"antennatyp"`
 	AlertStart  int64  `json:"alterstart"` //unixtime, 0 for no alert
 	Alarm       int    `json:"alarm"`      // has alarm
-	H           uint32 `json:"h"`          //cm 高度
-	X           uint32 `json:"x"`          //cmd下倾角
-	Y           uint32 `json:"y"`          //cmd方向角
-	Z           uint32 `json:"z"`          //横滚角
+	H           int    `json:"h"`          //cm 高度
+	X           int    `json:"x"`          //cmd下倾角
+	Y           int    `json:"y"`          //cmd方向角
+	Z           int    `json:"z"`          //横滚角
 	Update      int64  `json:"update"`     //unixtime the last update
 	attitude    Attitude
 }
@@ -46,9 +48,7 @@ func antenna_init() Antenna {
 
 //unitid < unit_count
 func antenna_get_id(equipid uint32, unitid uint32) Antenna {
-	var val []*Antenna
-	var ok bool
-	if val, ok = _id2antennas[equipid]; ok {
+	if val, ok := _id2antennas[equipid]; ok {
 		return *val[unitid]
 	}
 	return antenna_init()
@@ -64,10 +64,13 @@ func antennas_get_equip(equipid uint32) []EquipAntenna {
 	}
 	return v
 }
-func antenna_set_alarm(alarm int, equipid, unitid uint32) {
+func antenna_set_alarm(alarm int, equipid, unitid uint32) (ret int) {
 	if v, ok := _id2antennas[equipid]; ok {
+		ret = v[unitid].Alarm
 		v[unitid].Alarm = alarm
+		antenna_es_upsert(*v[unitid])
 	}
+	return ret
 }
 func antenna_set_attitude(a Attitude) {
 	if v, ok := _id2antennas[a.EquipId]; ok {
@@ -96,18 +99,48 @@ func antenna_upsert(equipid uint32, gprs string) {
 	}
 }
 
-func antenna_disable(equipid, unitid, disable uint32) int {
+func antenna_enable(equipid, unitid uint32, enable int) int {
+	log.Println("antenna-disable", equipid, unitid, enable)
 	ret := -1
-	if unitid >= unit_count {
-		return ret
-	}
+
 	if v, ok := _id2antennas[equipid]; ok {
-		v[unitid].Disable = disable
+		v[unitid].Enable = enable
 		antenna_es_upsert(*v[unitid])
 		ret = 0
 	}
 
 	return ret
+}
+
+func antenna_update(a Antenna) {
+	log.Println("antenna-upadte", a.EquipId, a.UnitId)
+	if v, ok := _id2antennas[a.EquipId]; ok {
+		v[a.UnitId].Lat = select_int(v[a.UnitId].Lat, a.Lat)
+		v[a.UnitId].Lng = select_int(v[a.UnitId].Lng, a.Lng)
+		v[a.UnitId].BaseName = select_string(v[a.UnitId].BaseName, a.BaseName)
+		v[a.UnitId].BaseId = a.BaseId
+		v[a.UnitId].CellId = a.CellId
+		v[a.UnitId].BaseManu = select_string(v[a.UnitId].BaseManu, a.BaseManu)
+		v[a.UnitId].AntennaManu = select_string(v[a.UnitId].AntennaManu, a.AntennaManu)
+		v[a.UnitId].AntennaTyp = select_string(v[a.UnitId].AntennaTyp, a.AntennaTyp)
+		v[a.UnitId].H = a.H
+		v[a.UnitId].X = a.X
+		v[a.UnitId].Y = a.Y
+		v[a.UnitId].Z = a.Z
+		v[a.UnitId].Enable = 1
+		v[a.UnitId].Update = time.Now().Unix()
+		antenna_es_upsert(*v[a.UnitId])
+	}
+}
+
+func antenna_update_bias(equipid, unitid uint32, h, x, y, z int) {
+	log.Println("antenna-update-bias", equipid, unitid, h, x, y, z)
+	if v, ok := _id2antennas[equipid]; ok {
+		ant := v[unitid]
+		ant.H, ant.X, ant.Y, ant.Z = h, x, y, z
+		ant.Update = time.Now().Unix()
+		antenna_es_upsert(*ant)
+	}
 }
 func antenna_es_upsert(a Antenna) {
 	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
@@ -131,6 +164,7 @@ func antennas_es_load() (ret []Antenna) {
 		from, count = from+len(v), len(v)
 		ret = append(ret, v...)
 	}
+	log.Println("antenna-es-load", len(ret))
 	return ret
 }
 

@@ -24,6 +24,7 @@ func main() {
 	http.Handle("/alarm/add", handler(handle_alarm_add))
 	http.Handle("/antennas/show", handler(handle_antennas_show))
 	http.Handle("/antenna/enable", handler(handle_antenna_enable))
+	http.Handle("/antennas/batch", handler(handle_antennas_batch))
 	http.Handle("/attitude/append", handler(handle_attitude_append))
 	http.Handle("/attitudes/show", handler(handle_attitudes_show))
 	http.Handle("/profile/edit", handler(handle_profile_edit))
@@ -113,7 +114,15 @@ func handle_equips_batch(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
-
+func handle_antennas_batch(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	var v []Antenna
+	dec := json.NewDecoder(r.Body)
+	panic_error(dec.Decode(&v))
+	for _, a := range v {
+		antenna_update(a)
+	}
+}
 func handle_alarms_show(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	eqid := atoui32(r.FormValue("equipid"))
@@ -138,11 +147,11 @@ func handle_alarm_add(w http.ResponseWriter, r *http.Request) {
 
 func handle_antenna_enable(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	disable, equipid, unitid := atoui32(r.FormValue("disable")), atoui32(r.FormValue("equipid")), atoui32(r.FormValue("unitid"))
+	enable, equipid, unitid := atoui32(r.FormValue("enable")), atoui32(r.FormValue("equipid")), atoui32(r.FormValue("unitid"))
 	//	gprs := r.FormValue("gprs")
 	//	equip := equip_get_id(equipid)
 	//	antenna := antenna_get_id(equipid, unitid)
-	v := antenna_disable(equipid, unitid, disable)
+	v := antenna_enable(equipid, unitid, int(enable))
 	//	antenna.Disable = disable
 	panic_error(json.NewEncoder(w).Encode(&v))
 }

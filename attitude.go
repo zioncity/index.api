@@ -52,10 +52,10 @@ func attitudes_fill(atts []Attitude) []EquipAntennaAttitude {
 //天线姿态上报，分批数据
 func attitudes_update(atts []Attitude) []EquipAntennaAttitude {
 	attitudes_fresh_antenna(atts)
-	attitudes_insert(atts)
+	attitudes_es_insert(atts)
 	return attitudes_fill(atts)
 }
-func attitudes_insert(atts []Attitude) {
+func attitudes_es_insert(atts []Attitude) {
 	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
 	panic_error(err)
 	for _, attitude := range atts {
@@ -70,7 +70,6 @@ func attitudes_get(equipid, unitid uint32, from, count int) []EquipAntennaAttitu
 	f := elastic.NewAndFilter()
 	f.Add(elastic.NewTermFilter("equipid", equipid))
 	f.Add(elastic.NewTermFilter("unitid", unitid))
-	//	var q = elastic.NewTermFilter("equipid", equipid).Source()
 
 	result, err := client.Search().Index(es_index).Type("attitude").Source(f.Source()).Sort("update", false).From(from).Size(count).Do()
 	panic_error(err)

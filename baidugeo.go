@@ -68,5 +68,4 @@ func baidu_latlong(gpslat, gpslng string) (float64, float64) {
 		panic_error(errors.New("invalid baidu status"))
 	}
 	return v.Result[0].Lat, v.Result[0].Long
-	//return strconv.FormatFloat(v.Result[0].Lat, 'f', 11, 64), strconv.FormatFloat(v.Result[0].Long, 'f', 11, 64), nil
 }
