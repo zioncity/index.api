@@ -1,5 +1,7 @@
 package main
 
+import "github.com/olivere/elastic"
+
 type Profile struct {
 	Duration int `json:"duration"` //hour  >0 and < 30*24
 	H        int `json:"h"`        //cm  >-100 and < 100
@@ -24,5 +26,13 @@ func profile_update(p Profile) Profile {
 	if p.Z < -360*cmd || p.Z > 360*cmd || p.Z == 0 {
 		p.Z = _profile.Z
 	}
+	profile_es_upsert(p)
 	return p
+}
+
+func profile_es_upsert(p Profile) {
+	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
+	panic_error(err)
+	_, err = client.Index().Index(es_index).Type("profile").Id("0").BodyJson(&p).Do()
+	panic_error(err)
 }

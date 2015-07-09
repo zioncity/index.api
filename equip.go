@@ -43,7 +43,7 @@ func equip_drop_id(equipid int64) {
 func equip_es_drop(equipid int64) {
 	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
 	panic_error(err)
-	_, err = client.Delete().Index(es_index).Id(strconv.Itoa(int(equipid))).Do()
+	_, err = client.Delete().Index(es_index).Type("equip").Id(strconv.Itoa(int(equipid))).Do()
 	panic_error(err)
 }
 func equip_add(e Equip) Equip {

@@ -32,16 +32,20 @@ var equip_id_seed uint32 = 0x80000000
 
 func date_now() int64 {
 	return time.Now().Unix()
-	//return time.Now().Add(-time.Hour * time.Duration(rand.Intn(24))).Unix()
 }
 
 var _profile Profile = Profile{24, 1 * cm, 2 * cmd, 5 * cmd, 5 * cmd}
 
-var _id2equips map[int64]*Equip
-var _id2antennas map[int64][]*Antenna
-var _gprs2equipid map[string]uint32
-var _id2gprs map[uint32]string
+var (
+	_id2equips    = make(map[int64]*Equip)
+	_id2antennas  = make(map[int64][]*Antenna)
+	_gprs2equipid = make(map[string]uint32)
+	_id2gprs      = make(map[uint32]string)
+)
 
+func init() {
+
+}
 func es_upsert(typ string, v interface{}) {
 	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
 	panic_error(err)

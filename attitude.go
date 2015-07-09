@@ -67,11 +67,11 @@ func attitudes_es_insert(atts []Attitude) {
 func attitudes_get(equipid int64, unitid uint32, from, count int) []EquipAntennaAttitude {
 	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
 	panic_error(err)
-	f := elastic.NewAndFilter()
-	f.Add(elastic.NewTermFilter("equipid", equipid))
-	f.Add(elastic.NewTermFilter("unitid", unitid))
+	f := elastic.NewBoolFilter().
+		Must(elastic.NewTermFilter("equipid", equipid)).
+		Must(elastic.NewTermFilter("unitid", unitid))
 
-	result, err := client.Search().Index(es_index).Type("attitude").Source(f.Source()).Sort("update", false).From(from).Size(count).Do()
+	result, err := client.Search().Index(es_index).Type("attitude").Query(f).Sort("update", false).From(from).Size(count).Do()
 	panic_error(err)
 	var v []Attitude
 	var ta = reflect.TypeOf(Attitude{})

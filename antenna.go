@@ -168,7 +168,6 @@ func antennas_es_load() (ret []Antenna) {
 	return ret
 }
 
-//var _id2antennas map[uint32][]*Antenna
 func antennas_all() {
 	ats := antennas_es_load()
 	for _, at := range ats {

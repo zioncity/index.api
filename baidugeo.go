@@ -18,7 +18,6 @@ const (
 
 //      "lng": 116.32298703399,
 //      "lat": 39.983424051248
-
 func baidu_location(lat, lng string, isbaidu int) string {
 	params := url.Values{}
 	if isbaidu == 0 {

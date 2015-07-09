@@ -14,6 +14,7 @@ func TestAlarmGetEquip(t *testing.T) {
 }
 
 func TestAlarmGetAntenna(t *testing.T) {
+	t.Skip()
 	x := alarms_get_antenna(equip_id_test, 0, 0, 10)
 	t.Log(x, "what")
 }
