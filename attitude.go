@@ -9,7 +9,7 @@ import (
 )
 
 type Attitude struct {
-	EquipId uint32 `json:"equipid"`
+	EquipId int64  `json:"equipid"`
 	Gprs    string `json:"gprs"`
 	UnitId  uint32 `json:"unitid"`
 	H       int    `json:"h"`      //cm centimetre
@@ -40,7 +40,7 @@ func attitudes_fill(atts []Attitude) []EquipAntennaAttitude {
 			atts[i].Gprs = random_no(16)
 		}
 		if atts[i].EquipId == 0 {
-			atts[i].EquipId = rand.Uint32()
+			atts[i].EquipId = rand.Int63()
 		}
 		v[i].Antenna = antenna_init()
 		v[i].Equip = equip_init()
@@ -64,7 +64,7 @@ func attitudes_es_insert(atts []Attitude) {
 	}
 }
 
-func attitudes_get(equipid, unitid uint32, from, count int) []EquipAntennaAttitude {
+func attitudes_get(equipid int64, unitid uint32, from, count int) []EquipAntennaAttitude {
 	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
 	panic_error(err)
 	f := elastic.NewAndFilter()
@@ -83,7 +83,7 @@ func attitudes_get(equipid, unitid uint32, from, count int) []EquipAntennaAttitu
 	return attitudes_fill(v)
 }
 
-func attitudes_get_equip(equipid uint32, from, count int) (v []EquipAntennaAttitude) {
+func attitudes_get_equip(equipid int64, from, count int) (v []EquipAntennaAttitude) {
 	if antennas, ok := _id2antennas[equipid]; ok {
 		for _, a := range antennas {
 			v = append(v, attitudes_get(equipid, a.UnitId, from, count)...)

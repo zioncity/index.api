@@ -8,7 +8,7 @@ import (
 )
 
 type Equip struct {
-	EquipId   uint32 `json:"equipid"`
+	EquipId   int64  `json:"equipid"`
 	Gprs      string `json:"gprs"`
 	Name      string `json:"name,omitempty"`
 	Province  string `json:"province"`
@@ -27,7 +27,7 @@ func equip_init() Equip {
 	return Equip{Duration: 24}
 }
 
-func equip_get_id(equipid uint32) Equip {
+func equip_get_id(equipid int64) Equip {
 	if v, ok := _id2equips[equipid]; ok {
 		return *v
 	}
@@ -35,12 +35,12 @@ func equip_get_id(equipid uint32) Equip {
 
 }
 
-func equip_drop_id(equipid uint32) {
+func equip_drop_id(equipid int64) {
 	delete(_id2equips, equipid)
 
 	equip_es_drop(equipid)
 }
-func equip_es_drop(equipid uint32) {
+func equip_es_drop(equipid int64) {
 	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
 	panic_error(err)
 	_, err = client.Delete().Index(es_index).Id(strconv.Itoa(int(equipid))).Do()
@@ -48,7 +48,7 @@ func equip_es_drop(equipid uint32) {
 }
 func equip_add(e Equip) Equip {
 	if e.EquipId == 0 && e.Gprs != "" {
-		e.EquipId = atoui32(e.Gprs)
+		e.EquipId = atoi(e.Gprs)
 	}
 	orig := equip_get_id(e.EquipId)
 	if e.EquipId != 0 && orig.EquipId == e.EquipId {
@@ -71,7 +71,7 @@ func select_string(p1, alt string) string {
 }
 func equip_activate(e Equip) Equip {
 	if e.EquipId == 0 && e.Gprs != "" {
-		e.EquipId = atoui32(e.Gprs)
+		e.EquipId = atoi(e.Gprs)
 	}
 	orig := equip_get_id(e.EquipId)
 	if orig.EquipId != 0 && orig.EquipId == e.EquipId {
@@ -126,7 +126,7 @@ func equip_all() {
 		_id2equips[equip.EquipId] = &equip
 	}
 }
-func equip_set_alarm(equipid uint32, old, current int) {
+func equip_set_alarm(equipid int64, old, current int) {
 	if equip, ok := _id2equips[equipid]; ok {
 		equip.Alarm = equip.Alarm - old + current
 		equip_es_upsert(*equip)

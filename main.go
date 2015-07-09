@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"net/http"
 	"strconv"
 	"time"
@@ -9,7 +10,10 @@ import (
 
 type handler func(w http.ResponseWriter, r *http.Request)
 
+var addr = flag.String("addr", ":9202", "listen address like ip:port")
+
 func main() {
+	flag.Parse()
 	equip_all()
 	antennas_all()
 	http.Handle("/equip/add", handler(handle_equip_add))
@@ -30,7 +34,7 @@ func main() {
 	http.Handle("/profile/edit", handler(handle_profile_edit))
 	http.Handle("/profile/show", handler(handle_profile_show))
 	http.Handle("/geo", handler(handle_baidu_geo)) // ?lat=xxx&lng=xxx&baidu=0
-	http.ListenAndServe(":9202", nil)
+	http.ListenAndServe(*addr, nil)
 }
 
 //post.body = equip
@@ -53,9 +57,9 @@ func handle_equip_activate(w http.ResponseWriter, r *http.Request) {
 	panic_error(json.NewEncoder(w).Encode(&val))
 }
 func handle_equip_drop(w http.ResponseWriter, r *http.Request) {
-	equipid, _ := strconv.Atoi(r.FormValue("equipid"))
+	equipid := atoi(r.FormValue("equipid"))
 
-	equip_drop_id(uint32(equipid))
+	equip_drop_id(equipid)
 
 }
 func handle_equip_edit(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +71,7 @@ func handle_equip_edit(w http.ResponseWriter, r *http.Request) {
 	panic_error(json.NewEncoder(w).Encode(&v))
 }
 func handle_equip_show(w http.ResponseWriter, r *http.Request) {
-	equipid := atoui32(r.FormValue("equipid"))
+	equipid := atoi(r.FormValue("equipid"))
 
 	v := equip_get_id(equipid)
 
@@ -76,8 +80,8 @@ func handle_equip_show(w http.ResponseWriter, r *http.Request) {
 
 func handle_equip_attitude(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	equipid := atoui32(r.FormValue("equipid"))
-	from, count := atoui32(r.FormValue("from")), atoui32(r.FormValue("count"))
+	equipid := atoi(r.FormValue("equipid"))
+	from, count := atoi(r.FormValue("from")), atoi(r.FormValue("count"))
 	if count == 0 {
 		count = 10
 	}
@@ -125,7 +129,7 @@ func handle_antennas_batch(w http.ResponseWriter, r *http.Request) {
 }
 func handle_alarms_show(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	eqid := atoui32(r.FormValue("equipid"))
+	eqid := atoi(r.FormValue("equipid"))
 	from, count := atoui32(r.FormValue("from")), atoui32(r.FormValue("count"))
 	if count == 0 {
 		count = 10
@@ -147,18 +151,15 @@ func handle_alarm_add(w http.ResponseWriter, r *http.Request) {
 
 func handle_antenna_enable(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	enable, equipid, unitid := atoui32(r.FormValue("enable")), atoui32(r.FormValue("equipid")), atoui32(r.FormValue("unitid"))
-	//	gprs := r.FormValue("gprs")
-	//	equip := equip_get_id(equipid)
-	//	antenna := antenna_get_id(equipid, unitid)
+	enable, equipid, unitid := atoui32(r.FormValue("enable")), atoi(r.FormValue("equipid")), atoui32(r.FormValue("unitid"))
+
 	v := antenna_enable(equipid, unitid, int(enable))
-	//	antenna.Disable = disable
 	panic_error(json.NewEncoder(w).Encode(&v))
 }
 
 func handle_antennas_show(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	equipid := atoui32(r.FormValue("equipid"))
+	equipid := atoi(r.FormValue("equipid"))
 	v := antennas_get_equip(equipid)
 	panic_error(json.NewEncoder(w).Encode(&v))
 }
@@ -174,7 +175,7 @@ func handle_attitude_append(w http.ResponseWriter, r *http.Request) {
 
 func handle_attitudes_show(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	equipid, unitid := atoui32(r.FormValue("equpid")), atoui32(r.FormValue("unitid"))
+	equipid, unitid := atoi(r.FormValue("equpid")), atoui32(r.FormValue("unitid"))
 	from, count := atoui32(r.FormValue("from")), atoui32(r.FormValue("count"))
 	if count == 0 {
 		count = 10

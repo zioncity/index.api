@@ -3,7 +3,7 @@ package main
 import "strconv"
 
 var (
-	es_url   = "http://"
+	es_url   = "http://testbox02.chinacloudapp.cn:9200"
 	es_index = "fixed"
 )
 
@@ -12,11 +12,15 @@ func atoui32(x string) uint32 {
 	return uint32(v)
 }
 
-func gprs2id(g string) uint32 {
-	return atoui32(g)
+func atoi(x string) int64 {
+	v, _ := strconv.Atoi(x)
+	return int64(v)
+}
+func gprs2id(g string) int64 {
+	return atoi(g)
 }
 
-func id2gprs(id uint32) string {
+func id2gprs(id int64) string {
 	return strconv.Itoa(int(id))
 }
 

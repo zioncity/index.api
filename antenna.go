@@ -14,7 +14,7 @@ const ()
 var antenna_type = []string{"reserve", "移动", "联通", "电信"}
 
 type Antenna struct {
-	EquipId     uint32 `json:"equipid"`
+	EquipId     int64  `json:"equipid"`
 	Gprs        string `json:"gprs"`
 	UnitId      uint32 `json:"unitid"`  //[0,18)
 	Lng         int    `json:"lng"`     // 129.23 *100000
@@ -47,14 +47,14 @@ func antenna_init() Antenna {
 }
 
 //unitid < unit_count
-func antenna_get_id(equipid uint32, unitid uint32) Antenna {
+func antenna_get_id(equipid int64, unitid uint32) Antenna {
 	if val, ok := _id2antennas[equipid]; ok {
 		return *val[unitid]
 	}
 	return antenna_init()
 }
 
-func antennas_get_equip(equipid uint32) []EquipAntenna {
+func antennas_get_equip(equipid int64) []EquipAntenna {
 	equip := equip_get_id(equipid)
 	var v []EquipAntenna
 	if ats, ok := _id2antennas[equipid]; ok {
@@ -64,7 +64,7 @@ func antennas_get_equip(equipid uint32) []EquipAntenna {
 	}
 	return v
 }
-func antenna_set_alarm(alarm int, equipid, unitid uint32) (ret int) {
+func antenna_set_alarm(alarm int, equipid int64, unitid uint32) (ret int) {
 	if v, ok := _id2antennas[equipid]; ok {
 		ret = v[unitid].Alarm
 		v[unitid].Alarm = alarm
@@ -77,7 +77,7 @@ func antenna_set_attitude(a Attitude) {
 		v[a.UnitId].attitude = a
 	}
 }
-func antenna_initialize_equip(ats []*Antenna, gprs string, equipid uint32) {
+func antenna_initialize_equip(ats []*Antenna, gprs string, equipid int64) {
 	for i := 0; i < len(ats); i++ {
 		ats[i] = &Antenna{}
 		ats[i].UnitId = uint32(i)
@@ -86,7 +86,7 @@ func antenna_initialize_equip(ats []*Antenna, gprs string, equipid uint32) {
 	}
 }
 
-func antenna_upsert(equipid uint32, gprs string) {
+func antenna_upsert(equipid int64, gprs string) {
 	if _, ok := _id2antennas[equipid]; ok {
 		return
 	}
@@ -99,7 +99,7 @@ func antenna_upsert(equipid uint32, gprs string) {
 	}
 }
 
-func antenna_enable(equipid, unitid uint32, enable int) int {
+func antenna_enable(equipid int64, unitid uint32, enable int) int {
 	log.Println("antenna-disable", equipid, unitid, enable)
 	ret := -1
 
@@ -133,7 +133,7 @@ func antenna_update(a Antenna) {
 	}
 }
 
-func antenna_update_bias(equipid, unitid uint32, h, x, y, z int) {
+func antenna_update_bias(equipid int64, unitid uint32, h, x, y, z int) {
 	log.Println("antenna-update-bias", equipid, unitid, h, x, y, z)
 	if v, ok := _id2antennas[equipid]; ok {
 		ant := v[unitid]
@@ -145,7 +145,7 @@ func antenna_update_bias(equipid, unitid uint32, h, x, y, z int) {
 func antenna_es_upsert(a Antenna) {
 	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
 	panic_error(err)
-	_, err = client.Index().Index(es_index).Type("antenna").Id(strconv.Itoa(int(a.EquipId*100 + a.UnitId))).BodyJson(&a).Do()
+	_, err = client.Index().Index(es_index).Type("antenna").Id(strconv.Itoa(int(a.EquipId*100 + int64(a.UnitId)))).BodyJson(&a).Do()
 	panic_error(err)
 }
 func antennas_es_load() (ret []Antenna) {

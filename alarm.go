@@ -15,7 +15,7 @@ import (
 */
 
 type Alarm struct {
-	EquipId uint32 `json:"equipid"`
+	EquipId int64  `json:"equipid"`
 	UnitId  uint32 `json:"unitid"`
 	Gprs    string `json:"gprs"`
 	H       int    `json:"h"`
@@ -42,14 +42,13 @@ func alarm_init() Alarm {
 }
 
 //获取下位机的告警
-func alarms_get_equip(equipid uint32, from, count int) []EquipAntennaAlarm {
+func alarms_get_equip(equipid int64, from, count int) []EquipAntennaAlarm {
 	log.Println("alarms-get-equip", equipid, from, count)
 	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
 	panic_error(err)
 
-	var q = elastic.NewTermFilter("equipid", equipid).Source()
-
-	result, err := client.Search().Index(es_index).Type("alarm").Source(q).Sort("date", false).From(from).Size(count).Do()
+	var q = elastic.NewTermFilter("equipid", equipid)
+	result, err := client.Search().Index(es_index).Type("alarm").Query(q).Sort("date", false).From(from).Size(count).Do()
 	panic_error(err)
 	var v []EquipAntennaAlarm
 	var ta = reflect.TypeOf(Alarm{})
@@ -62,14 +61,16 @@ func alarms_get_equip(equipid uint32, from, count int) []EquipAntennaAlarm {
 }
 
 //获取某根天线的告警
-func alarms_get_antenna(equipid, unitid uint32, from, count int) []EquipAntennaAlarm {
+func alarms_get_antenna(equipid int64, unitid uint32, from, count int) []EquipAntennaAlarm {
 	log.Println("alarms-get-antenna", equipid, unitid, from, count)
 	client, err := elastic.NewClient(elastic.SetURL(es_url), elastic.SetSniff(false))
 	panic_error(err)
-	f := elastic.NewAndFilter()
-	f.Add(elastic.NewTermFilter("equipid", equipid))
-	f.Add(elastic.NewTermFilter("unitid", unitid))
-	result, err := client.Search().Index(es_index).Type("alarm").Source(f.Source()).Sort("date", false).From(from).Size(count).Do()
+
+	bf := elastic.NewBoolFilter().
+		Must(elastic.NewTermFilter("equipid", equipid)).
+		Must(elastic.NewTermFilter("unitid", unitid))
+
+	result, err := client.Search().Index(es_index).Type("alarm").Query(bf).Sort("date", false).From(from).Size(count).Do()
 	panic_error(err)
 	var v []EquipAntennaAlarm
 	var ta = reflect.TypeOf(Alarm{})

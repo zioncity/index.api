@@ -37,8 +37,8 @@ func date_now() int64 {
 
 var _profile Profile = Profile{24, 1 * cm, 2 * cmd, 5 * cmd, 5 * cmd}
 
-var _id2equips map[uint32]*Equip
-var _id2antennas map[uint32][]*Antenna
+var _id2equips map[int64]*Equip
+var _id2antennas map[int64][]*Antenna
 var _gprs2equipid map[string]uint32
 var _id2gprs map[uint32]string
 
